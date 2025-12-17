@@ -6,6 +6,10 @@ import { prisma } from '../../db/prisma.js';
 
 export const adminRoutes: FastifyPluginAsync = async (app) => {
   const requireAdmin = app.requireRole(['owner', 'admin', 'support', 'moderator', 'finance']);
+  const requireOwnerAdmin = app.requireRole(['owner', 'admin']);
+  const requireSupport = app.requireRole(['owner', 'admin', 'support']);
+  const requireModerator = app.requireRole(['owner', 'admin', 'moderator']);
+  const requireFinance = app.requireRole(['owner', 'admin', 'finance']);
 
   app.get('/admin/stats', { preHandler: requireAdmin }, async () => {
     const [users, openTickets, hazards] = await Promise.all([
@@ -101,7 +105,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // Tickets (support)
-  app.get('/admin/tickets', { preHandler: requireAdmin }, async () => {
+  app.get('/admin/tickets', { preHandler: requireSupport }, async () => {
     const tickets = await prisma.ticket.findMany({
       take: 100,
       orderBy: { updatedAt: 'desc' },
@@ -110,7 +114,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
     return { tickets };
   });
 
-  app.get('/admin/tickets/:ticketId', { preHandler: requireAdmin }, async (req) => {
+  app.get('/admin/tickets/:ticketId', { preHandler: requireSupport }, async (req) => {
     const params = z.object({ ticketId: z.string().min(1) }).parse(req.params);
     const ticket = await prisma.ticket.findUnique({
       where: { id: params.ticketId },
@@ -119,7 +123,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
     return { ticket };
   });
 
-  app.post('/admin/tickets/:ticketId/reply', { preHandler: requireAdmin }, async (req: any, reply) => {
+  app.post('/admin/tickets/:ticketId/reply', { preHandler: requireSupport }, async (req: any, reply) => {
     const params = z.object({ ticketId: z.string().min(1) }).parse(req.params);
     const body = z.object({ text: z.string().min(1).max(4000) }).parse(req.body);
 
@@ -141,12 +145,12 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // Catalog
-  app.get('/admin/vehicles', { preHandler: app.requireRole(['owner', 'admin']) }, async () => {
+  app.get('/admin/vehicles', { preHandler: requireOwnerAdmin }, async () => {
     const items = await prisma.vehicleCatalogItem.findMany({ orderBy: { updatedAt: 'desc' }, take: 200 });
     return { items };
   });
 
-  app.post('/admin/vehicles', { preHandler: app.requireRole(['owner', 'admin']) }, async (req: any, reply) => {
+  app.post('/admin/vehicles', { preHandler: requireOwnerAdmin }, async (req: any, reply) => {
     const body = z
       .object({
         category: z.enum(['car', 'moto', 'bicycle', 'truck', 'bus', 'rv', 'tvde']),
@@ -165,8 +169,187 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
     return reply.code(201).send({ item });
   });
 
+  app.patch('/admin/vehicles/:id', { preHandler: requireOwnerAdmin }, async (req: any) => {
+    const params = z.object({ id: z.string().min(1) }).parse(req.params);
+    const body = z
+      .object({
+        make: z.string().min(1).max(40).optional(),
+        model: z.string().min(1).max(60).optional(),
+        year: z.number().int().min(1950).max(2100).optional(),
+        heightM: z.number().optional(),
+        widthM: z.number().optional(),
+        lengthM: z.number().optional(),
+        weightT: z.number().optional(),
+        isActive: z.boolean().optional(),
+      })
+      .parse(req.body);
+
+    const item = await prisma.vehicleCatalogItem.update({ where: { id: params.id }, data: body as any });
+    await app.audit({ actorId: req.userContext?.id, action: 'admin.vehicle.update', target: item.id, meta: body });
+    return { item };
+  });
+
+  // Shop packages
+  app.get('/admin/shop/packages', { preHandler: requireOwnerAdmin }, async () => {
+    const items = await prisma.shopPackage.findMany({ orderBy: { updatedAt: 'desc' }, take: 200 });
+    return { items };
+  });
+
+  app.post('/admin/shop/packages', { preHandler: requireOwnerAdmin }, async (req: any, reply) => {
+    const body = z
+      .object({
+        sku: z.string().min(3).max(64),
+        title: z.string().min(1).max(80),
+        description: z.string().max(300).optional(),
+        priceEur: z.number().min(0),
+        isActive: z.boolean().optional(),
+      })
+      .parse(req.body);
+    const item = await prisma.shopPackage.create({ data: { id: nanoid(), ...body } as any });
+    await app.audit({ actorId: req.userContext?.id, action: 'admin.shopPackage.create', target: item.id, meta: body });
+    return reply.code(201).send({ item });
+  });
+
+  app.patch('/admin/shop/packages/:id', { preHandler: requireOwnerAdmin }, async (req: any) => {
+    const params = z.object({ id: z.string().min(1) }).parse(req.params);
+    const body = z
+      .object({
+        title: z.string().min(1).max(80).optional(),
+        description: z.string().max(300).optional().nullable(),
+        priceEur: z.number().min(0).optional(),
+        isActive: z.boolean().optional(),
+      })
+      .parse(req.body);
+    const item = await prisma.shopPackage.update({ where: { id: params.id }, data: body as any });
+    await app.audit({ actorId: req.userContext?.id, action: 'admin.shopPackage.update', target: item.id, meta: body });
+    return { item };
+  });
+
+  // Promotions
+  app.get('/admin/promotions', { preHandler: requireOwnerAdmin }, async () => {
+    const items = await prisma.promotion.findMany({ orderBy: { createdAt: 'desc' }, take: 200 });
+    return { items };
+  });
+
+  app.post('/admin/promotions', { preHandler: requireOwnerAdmin }, async (req: any, reply) => {
+    const body = z
+      .object({
+        code: z.string().min(3).max(32),
+        percentOff: z.number().int().min(0).max(90),
+        active: z.boolean().optional(),
+        startsAt: z.string().datetime().optional(),
+        endsAt: z.string().datetime().optional(),
+      })
+      .parse(req.body);
+    const item = await prisma.promotion.create({
+      data: {
+        id: nanoid(),
+        code: body.code,
+        percentOff: body.percentOff,
+        active: body.active ?? true,
+        startsAt: body.startsAt ? new Date(body.startsAt) : null,
+        endsAt: body.endsAt ? new Date(body.endsAt) : null,
+      } as any,
+    });
+    await app.audit({ actorId: req.userContext?.id, action: 'admin.promotion.create', target: item.id, meta: body });
+    return reply.code(201).send({ item });
+  });
+
+  app.patch('/admin/promotions/:id', { preHandler: requireOwnerAdmin }, async (req: any) => {
+    const params = z.object({ id: z.string().min(1) }).parse(req.params);
+    const body = z
+      .object({
+        percentOff: z.number().int().min(0).max(90).optional(),
+        active: z.boolean().optional(),
+        startsAt: z.string().datetime().optional().nullable(),
+        endsAt: z.string().datetime().optional().nullable(),
+      })
+      .parse(req.body);
+    const item = await prisma.promotion.update({
+      where: { id: params.id },
+      data: {
+        percentOff: body.percentOff,
+        active: body.active,
+        startsAt: body.startsAt ? new Date(body.startsAt) : body.startsAt === null ? null : undefined,
+        endsAt: body.endsAt ? new Date(body.endsAt) : body.endsAt === null ? null : undefined,
+      } as any,
+    });
+    await app.audit({ actorId: req.userContext?.id, action: 'admin.promotion.update', target: item.id, meta: body });
+    return { item };
+  });
+
+  // Hazards moderation
+  app.get('/admin/hazards', { preHandler: requireModerator }, async (req) => {
+    const q = z
+      .object({
+        active: z.enum(['true', 'false']).optional(),
+        take: z.coerce.number().default(200),
+      })
+      .parse(req.query);
+    const where = q.active ? { isActive: q.active === 'true' } : {};
+    const events = await prisma.hazardEvent.findMany({
+      where,
+      take: Math.min(500, q.take),
+      orderBy: { updatedAt: 'desc' },
+      include: { _count: { select: { reports: true } } },
+    });
+    return { events };
+  });
+
+  app.patch('/admin/hazards/:id', { preHandler: requireModerator }, async (req: any) => {
+    const params = z.object({ id: z.string().min(1) }).parse(req.params);
+    const body = z
+      .object({
+        isActive: z.boolean().optional(),
+        title: z.string().max(120).optional().nullable(),
+        type: z.enum(['fixedRadar', 'mobileRadar', 'police', 'accident', 'works', 'danger']).optional(),
+      })
+      .parse(req.body);
+
+    const event = await prisma.hazardEvent.update({ where: { id: params.id }, data: body as any });
+    await app.audit({ actorId: req.userContext?.id, action: 'admin.hazard.update', target: event.id, meta: body });
+    return { event };
+  });
+
+  // Finance (ledger)
+  app.get('/admin/ledger', { preHandler: requireFinance }, async (req) => {
+    const q = z
+      .object({
+        userId: z.string().optional(),
+        take: z.coerce.number().default(100),
+      })
+      .parse(req.query);
+    const entries = await prisma.ledgerEntry.findMany({
+      where: q.userId ? { userId: q.userId } : {},
+      take: Math.min(500, q.take),
+      orderBy: { createdAt: 'desc' },
+      include: { user: { select: { id: true, email: true, username: true } } },
+    });
+    return { entries };
+  });
+
+  // Audit log
+  app.get('/admin/audit', { preHandler: requireOwnerAdmin }, async (req) => {
+    const q = z
+      .object({
+        action: z.string().optional(),
+        actorId: z.string().optional(),
+        take: z.coerce.number().default(200),
+      })
+      .parse(req.query);
+    const logs = await prisma.auditLog.findMany({
+      where: {
+        action: q.action ? { contains: q.action } : undefined,
+        actorId: q.actorId,
+      },
+      take: Math.min(500, q.take),
+      orderBy: { createdAt: 'desc' },
+    });
+    return { logs };
+  });
+
   // Economy: manual adjustments (owner/admin only)
-  app.post('/admin/wallet/:userId/adjust', { preHandler: app.requireRole(['owner', 'admin']) }, async (req: any, reply) => {
+  app.post('/admin/wallet/:userId/adjust', { preHandler: requireOwnerAdmin }, async (req: any, reply) => {
     const params = z.object({ userId: z.string().min(1) }).parse(req.params);
     const body = z
       .object({

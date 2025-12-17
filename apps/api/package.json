@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "db:generate": "./node_modules/.bin/prisma generate",
     "db:migrate": "./node_modules/.bin/prisma migrate dev",
-    "db:push": "./node_modules/.bin/prisma db push"
+    "db:push": "./node_modules/.bin/prisma db push",
+    "seed:owner": "tsx src/scripts/seed_owner.ts"
   },
   "dependencies": {
     "@fastify/cors": "^10.1.0",

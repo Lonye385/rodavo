@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Ticket, AlertTriangle, LayoutDashboard, LogOut } from 'lucide-react';
+import { Users, Ticket, AlertTriangle, LayoutDashboard, LogOut, Truck, Store, Percent, UserPlus, ScrollText } from 'lucide-react';
 
 import { AdminApiClient, type ApiUser } from '../services/api';
 import { LoginPage } from '../pages/LoginPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { UsersPage } from '../pages/UsersPage';
 import { TicketsPage } from '../pages/TicketsPage';
+import { HazardsPage } from '../pages/admin/HazardsPage';
+import { VehiclesPage } from '../pages/admin/VehiclesPage';
+import { ShopPackagesPage } from '../pages/admin/ShopPackagesPage';
+import { PromotionsPage } from '../pages/admin/PromotionsPage';
+import { TeamPage } from '../pages/admin/TeamPage';
+import { AuditPage } from '../pages/admin/AuditPage';
 
-type View = 'dashboard' | 'users' | 'tickets';
+type View = 'dashboard' | 'users' | 'tickets' | 'hazards' | 'vehicles' | 'shop' | 'promos' | 'team' | 'audit';
 
 export default function App() {
   const api = AdminApiClient.fromEnv();
@@ -50,6 +56,24 @@ export default function App() {
           <button onClick={() => setView('tickets')} className={`flex items-center gap-2 p-2 rounded ${view==='tickets'?'bg-white/10':'hover:bg-white/5'}`}>
             <Ticket size={16} /> Tickets
           </button>
+          <button onClick={() => setView('hazards')} className={`flex items-center gap-2 p-2 rounded ${view==='hazards'?'bg-white/10':'hover:bg-white/5'}`}>
+            <AlertTriangle size={16} /> Hazards
+          </button>
+          <button onClick={() => setView('vehicles')} className={`flex items-center gap-2 p-2 rounded ${view==='vehicles'?'bg-white/10':'hover:bg-white/5'}`}>
+            <Truck size={16} /> Vehicles
+          </button>
+          <button onClick={() => setView('shop')} className={`flex items-center gap-2 p-2 rounded ${view==='shop'?'bg-white/10':'hover:bg-white/5'}`}>
+            <Store size={16} /> Shop
+          </button>
+          <button onClick={() => setView('promos')} className={`flex items-center gap-2 p-2 rounded ${view==='promos'?'bg-white/10':'hover:bg-white/5'}`}>
+            <Percent size={16} /> Promos
+          </button>
+          <button onClick={() => setView('team')} className={`flex items-center gap-2 p-2 rounded ${view==='team'?'bg-white/10':'hover:bg-white/5'}`}>
+            <UserPlus size={16} /> Team
+          </button>
+          <button onClick={() => setView('audit')} className={`flex items-center gap-2 p-2 rounded ${view==='audit'?'bg-white/10':'hover:bg-white/5'}`}>
+            <ScrollText size={16} /> Audit
+          </button>
         </nav>
         <div className="mt-auto pt-4">
           <button
@@ -67,8 +91,12 @@ export default function App() {
         {view === 'dashboard' && <DashboardPage />}
         {view === 'users' && <UsersPage />}
         {view === 'tickets' && <TicketsPage />}
-        {/* Hazards moderation will be next page */}
-        <div className="hidden"><AlertTriangle /></div>
+        {view === 'hazards' && <HazardsPage />}
+        {view === 'vehicles' && <VehiclesPage />}
+        {view === 'shop' && <ShopPackagesPage />}
+        {view === 'promos' && <PromotionsPage />}
+        {view === 'team' && <TeamPage />}
+        {view === 'audit' && <AuditPage />}
       </main>
     </div>
   );

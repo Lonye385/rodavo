@@ -69,6 +69,108 @@ export class AdminApiClient {
     return await this.authed<{ tickets: any[] }>('/admin/tickets');
   }
 
+  async adminTicket(ticketId: string) {
+    return await this.authed<{ ticket: any }>(`/admin/tickets/${ticketId}`);
+  }
+
+  async adminTicketReply(ticketId: string, text: string) {
+    return await this.authed<{ message: any }>(`/admin/tickets/${ticketId}/reply`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+  }
+
+  async adminHazards(active?: boolean) {
+    const url = active === undefined ? '/admin/hazards' : `/admin/hazards?active=${active ? 'true' : 'false'}`;
+    return await this.authed<{ events: any[] }>(url);
+  }
+
+  async adminHazardUpdate(id: string, patch: { isActive?: boolean; title?: string | null; type?: string }) {
+    return await this.authed<{ event: any }>(`/admin/hazards/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+  }
+
+  async adminVehicles() {
+    return await this.authed<{ items: any[] }>('/admin/vehicles');
+  }
+
+  async adminVehicleCreate(body: any) {
+    return await this.authed<{ item: any }>('/admin/vehicles', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async adminVehicleUpdate(id: string, patch: any) {
+    return await this.authed<{ item: any }>(`/admin/vehicles/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+  }
+
+  async adminShopPackages() {
+    return await this.authed<{ items: any[] }>('/admin/shop/packages');
+  }
+
+  async adminShopPackageCreate(body: any) {
+    return await this.authed<{ item: any }>('/admin/shop/packages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async adminShopPackageUpdate(id: string, patch: any) {
+    return await this.authed<{ item: any }>(`/admin/shop/packages/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+  }
+
+  async adminPromotions() {
+    return await this.authed<{ items: any[] }>('/admin/promotions');
+  }
+
+  async adminPromotionCreate(body: any) {
+    return await this.authed<{ item: any }>('/admin/promotions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async adminPromotionUpdate(id: string, patch: any) {
+    return await this.authed<{ item: any }>(`/admin/promotions/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+  }
+
+  async adminInvites() {
+    return await this.authed<{ invites: any[] }>('/admin/invites');
+  }
+
+  async adminInviteCreate(body: any) {
+    return await this.authed<{ invite: any }>('/admin/invites', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async adminAudit(action?: string) {
+    const url = action ? `/admin/audit?action=${encodeURIComponent(action)}` : '/admin/audit';
+    return await this.authed<{ logs: any[] }>(url);
+  }
+
   private async authed<T>(path: string, init?: RequestInit): Promise<T> {
     const tokens = readTokens();
     if (!tokens) throw new Error('no_tokens');
