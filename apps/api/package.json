@@ -7,9 +7,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push"
+    "db:generate": "./node_modules/.bin/prisma generate",
+    "db:migrate": "./node_modules/.bin/prisma migrate dev",
+    "db:push": "./node_modules/.bin/prisma db push"
   },
   "dependencies": {
     "@fastify/cors": "^10.1.0",

@@ -21,6 +21,50 @@ const RefreshSchema = z.object({
 });
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
+  app.post('/auth/admin/accept-invite', async (req, reply) => {
+    const body = z
+      .object({
+        token: z.string().min(10),
+        email: z.string().email(),
+        username: z.string().min(3).max(24),
+        password: z.string().min(8).max(128),
+      })
+      .parse(req.body);
+
+    const invite = await prisma.adminInvite.findUnique({ where: { token: body.token } });
+    if (!invite) return reply.code(404).send({ error: 'invite_not_found' });
+    if (invite.acceptedAt) return reply.code(409).send({ error: 'invite_used' });
+    if (invite.email.toLowerCase() !== body.email.toLowerCase()) return reply.code(403).send({ error: 'invite_email_mismatch' });
+    if (invite.expiresAt.getTime() < Date.now()) return reply.code(410).send({ error: 'invite_expired' });
+
+    const exists = await prisma.user.findFirst({
+      where: { OR: [{ email: body.email }, { username: body.username }] },
+      select: { id: true },
+    });
+    if (exists) return reply.code(409).send({ error: 'user_exists' });
+
+    const user = await prisma.user.create({
+      data: {
+        id: nanoid(),
+        email: body.email,
+        username: body.username,
+        passwordHash: await argon2.hash(body.password),
+        role: invite.role,
+      },
+      select: { id: true, email: true, username: true, role: true },
+    });
+
+    await prisma.adminInvite.update({ where: { token: body.token }, data: { acceptedAt: new Date() } });
+
+    const refreshJti = nanoid();
+    await prisma.session.create({ data: { id: nanoid(), userId: user.id, refreshJti } });
+
+    const accessToken = await (reply as any).jwtSign({ sub: user.id });
+    const refreshToken = await (reply as any).jwtSign({ sub: user.id, jti: refreshJti }, { namespace: 'refresh' });
+
+    return { user, accessToken, refreshToken };
+  });
+
   app.post('/auth/register', async (req, reply) => {
     const body = RegisterSchema.parse(req.body);
 
@@ -37,7 +81,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         username: body.username,
         passwordHash: await argon2.hash(body.password),
       },
-      select: { id: true, email: true, username: true },
+      select: { id: true, email: true, username: true, role: true },
     });
 
     const refreshJti = nanoid();
@@ -65,7 +109,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const refreshToken = await (reply as any).jwtSign({ sub: user.id, jti: refreshJti }, { namespace: 'refresh' });
 
     return {
-      user: { id: user.id, email: user.email, username: user.username },
+      user: { id: user.id, email: user.email, username: user.username, role: user.role },
       accessToken,
       refreshToken,
     };

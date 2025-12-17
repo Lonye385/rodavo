@@ -12,6 +12,8 @@ model User {
   email        String   @unique
   passwordHash String
   username     String   @unique
+  role         Role     @default(user)
+  isBanned     Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -20,6 +22,19 @@ model User {
   memberships  GuildMember[]
   guildMessages GuildMessage[]
   hazardReports HazardReport[]
+  tickets      Ticket[]
+  ticketMessages TicketMessage[]
+  wallet       Wallet?
+  ledgerEntries LedgerEntry[]
+}
+
+enum Role {
+  user
+  support
+  moderator
+  finance
+  admin
+  owner
 }
 
 model Session {
@@ -81,6 +96,31 @@ model GuildMessage {
   @@index([guildId, createdAt])
 }
 
+model AdminInvite {
+  id         String   @id
+  email      String
+  role       Role
+  token      String   @unique
+  invitedBy  String?
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([email])
+}
+
+model AuditLog {
+  id        String   @id
+  actorId   String?
+  action    String
+  target    String?
+  metaJson  String?
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+}
+
 enum HazardType {
   fixedRadar
   mobileRadar
@@ -116,4 +156,116 @@ model HazardReport {
   event     HazardEvent @relation(fields: [eventId], references: [id])
 
   @@index([eventId, createdAt])
+}
+
+enum TicketStatus {
+  open
+  pending
+  closed
+}
+
+model Ticket {
+  id        String       @id
+  userId    String
+  subject   String
+  status    TicketStatus @default(open)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user      User         @relation(fields: [userId], references: [id])
+  messages  TicketMessage[]
+
+  @@index([status, updatedAt])
+  @@index([userId, createdAt])
+}
+
+model TicketMessage {
+  id        String   @id
+  ticketId  String
+  userId    String?
+  author    String   // 'user' | 'support' | 'system'
+  text      String
+  createdAt DateTime @default(now())
+
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([ticketId, createdAt])
+}
+
+enum VehicleCategory {
+  car
+  moto
+  bicycle
+  truck
+  bus
+  rv
+  tvde
+}
+
+model VehicleCatalogItem {
+  id        String          @id
+  category  VehicleCategory
+  make      String
+  model     String
+  year      Int?
+  // logistics specs
+  heightM   Float?
+  widthM    Float?
+  lengthM   Float?
+  weightT   Float?
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([category, isActive])
+}
+
+model ShopPackage {
+  id          String   @id
+  sku         String   @unique
+  title       String
+  description String?
+  priceEur    Float
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Promotion {
+  id         String   @id
+  code       String   @unique
+  percentOff Int      @default(0)
+  active     Boolean  @default(true)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  createdAt  DateTime @default(now())
+}
+
+model Wallet {
+  userId    String  @id
+  cash      Int     @default(0)
+  rCoins    Int     @default(0)
+  updatedAt DateTime @updatedAt
+
+  user      User    @relation(fields: [userId], references: [id])
+}
+
+enum LedgerCurrency {
+  cash
+  rCoins
+}
+
+model LedgerEntry {
+  id        String        @id
+  userId    String
+  currency  LedgerCurrency
+  delta     Int
+  reason    String
+  metaJson  String?
+  createdAt DateTime      @default(now())
+
+  user      User          @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
 }

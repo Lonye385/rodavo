@@ -9,7 +9,7 @@ export const corePlugin: FastifyPluginAsync = async (app) => {
   await app.register(helmet, { global: true });
 
   await app.register(cors, {
-    origin: env.CORS_ORIGIN,
+    origin: env.CORS_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean),
     credentials: true,
   });
 
