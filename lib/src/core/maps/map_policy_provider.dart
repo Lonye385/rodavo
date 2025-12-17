@@ -21,9 +21,9 @@ Future<MapPolicy> mapPolicy(Ref ref) async {
 
   // CEO policy:
   // - basic: traffic off, aggressive throttling, gestures off while driving.
-  // - pro: traffic allowed but *windowed*, moderate throttling.
-  // - lite mode: force traffic off + more throttling.
-  final trafficEnabled = tier == PlanTier.pro1490 && !lite;
+  // - pro: still traffic off (not used in the business model).
+  // - lite mode: more throttling.
+  final trafficEnabled = false;
 
   final cameraInterval = lite
       ? const Duration(milliseconds: 1200)
@@ -31,7 +31,7 @@ Future<MapPolicy> mapPolicy(Ref ref) async {
           ? const Duration(milliseconds: 600)
           : const Duration(milliseconds: 900));
 
-  final trafficRefresh = trafficEnabled ? const Duration(minutes: 10) : const Duration(hours: 999);
+  final trafficRefresh = const Duration(hours: 999);
 
   final allowPanZoom = tier == PlanTier.pro1490 && !lite;
 

@@ -6,7 +6,7 @@ part of 'map_policy_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$mapPolicyHash() => r'd7b287c2b440d11b2d51ecdc2f10b8fe6c5dbcd5';
+String _$mapPolicyHash() => r'5a768260e438c3015a7972ad688f3392dd36fe0c';
 
 /// See also [mapPolicy].
 @ProviderFor(mapPolicy)
