@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/onboarding/presentation/pages/home_placeholder_page.dart';
 import '../../features/onboarding/presentation/providers/vehicle_profile_providers.dart';
+import '../usage/presentation/usage_dashboard_page.dart';
 
 part 'app_router.g.dart';
 
@@ -24,6 +25,10 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '/home',
         builder: (context, state) => const HomePlaceholderPage(),
+      ),
+      GoRoute(
+        path: '/usage',
+        builder: (context, state) => const UsageDashboardPage(),
       ),
     ],
   );

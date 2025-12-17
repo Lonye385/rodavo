@@ -7,6 +7,7 @@ const vehicleProfileBoxName = 'rodavo_vehicle_profile_secure';
 const routingCacheBoxName = 'rodavo_routing_cache_secure';
 const searchCacheBoxName = 'rodavo_search_cache_secure';
 const hazardsBoxName = 'rodavo_hazards_secure';
+const usageBoxName = 'rodavo_usage_secure';
 
 Future<void> initHive() async {
   await Hive.initFlutter();
@@ -19,6 +20,7 @@ Future<void> initHive() async {
     await Hive.openBox<String>(routingCacheBoxName);
     await Hive.openBox<String>(searchCacheBoxName);
     await Hive.openBox<String>(hazardsBoxName);
+    await Hive.openBox<String>(usageBoxName);
     return;
   }
 
@@ -39,6 +41,11 @@ Future<void> initHive() async {
 
   await Hive.openBox<String>(
     hazardsBoxName,
+    encryptionCipher: HiveAesCipher(key),
+  );
+
+  await Hive.openBox<String>(
+    usageBoxName,
     encryptionCipher: HiveAesCipher(key),
   );
 }

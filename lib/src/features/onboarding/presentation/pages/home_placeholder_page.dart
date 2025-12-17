@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../providers/vehicle_profile_providers.dart';
 
@@ -34,6 +35,11 @@ class HomePlaceholderPage extends ConsumerWidget {
             Text('Veículo: ${profile?.vehicleType.name ?? '-'}'),
             const SizedBox(height: 8),
             Text('Waypoints: ${profile?.waypoints.length ?? 0}'),
+            const SizedBox(height: 16),
+            FilledButton.tonal(
+              onPressed: () => context.push('/usage'),
+              child: const Text('Ver Usage/€ (30 dias)'),
+            ),
           ],
         ),
       ),
