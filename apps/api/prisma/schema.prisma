@@ -128,6 +128,8 @@ enum HazardType {
   accident
   works
   danger
+  redLight
+  sectionControl
 }
 
 model HazardEvent {
@@ -137,6 +139,8 @@ model HazardEvent {
   lng         Float
   countryCode String?
   title       String?
+  speedKph    Int?
+  directionDeg Int?
   isActive    Boolean    @default(true)
   isStatic    Boolean    @default(false)
   source      String?
