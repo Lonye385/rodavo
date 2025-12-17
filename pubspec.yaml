@@ -44,7 +44,7 @@ dependencies:
 
   # Models
   freezed_annotation: ^2.4.4
-  json_annotation: ^4.8.1
+  json_annotation: ^4.9.0
 
   # Local persistence (encrypted Hive)
   hive: ^2.2.3

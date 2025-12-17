@@ -3,12 +3,13 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'device_check_provider.g.dart';
 
 @riverpod
-Future<bool> isLowSpecMode(IsLowSpecModeRef ref) async {
+Future<bool> isLowSpecMode(Ref ref) async {
   // Conservative: only enable low-spec when we have strong signals.
   if (kIsWeb) return true;
 
@@ -32,7 +33,7 @@ Future<bool> isLowSpecMode(IsLowSpecModeRef ref) async {
 
   if (Platform.isIOS) {
     final ios = await info.iosInfo;
-    final machine = ios.utsname.machine ?? '';
+    final machine = ios.utsname.machine;
 
     // Rough cut: iPhone 8 / X era and older.
     final legacyPrefixes = <String>[
