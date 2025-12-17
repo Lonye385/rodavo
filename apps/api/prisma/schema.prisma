@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id
+  email        String   @unique
+  passwordHash String
+  username     String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions     Session[]
+  posts        Post[]
+  memberships  GuildMember[]
+  guildMessages GuildMessage[]
+  hazardReports HazardReport[]
+}
+
+model Session {
+  id          String   @id
+  userId      String
+  refreshJti  String   @unique
+  createdAt   DateTime @default(now())
+  revokedAt   DateTime?
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model Post {
+  id        String   @id
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model Guild {
+  id        String   @id
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  members   GuildMember[]
+  messages  GuildMessage[]
+}
+
+model GuildMember {
+  id        String   @id
+  userId    String
+  guildId   String
+  role      String   @default("member")
+  joinedAt  DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  guild     Guild    @relation(fields: [guildId], references: [id])
+
+  @@unique([userId, guildId])
+  @@index([guildId])
+}
+
+model GuildMessage {
+  id        String   @id
+  guildId   String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  guild     Guild    @relation(fields: [guildId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([guildId, createdAt])
+}
+
+enum HazardType {
+  fixedRadar
+  mobileRadar
+  police
+  accident
+  works
+  danger
+}
+
+model HazardEvent {
+  id          String     @id
+  type        HazardType
+  lat         Float
+  lng         Float
+  countryCode String?
+  title       String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  reports     HazardReport[]
+
+  @@index([isActive])
+}
+
+model HazardReport {
+  id        String   @id
+  userId    String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  user      User       @relation(fields: [userId], references: [id])
+  event     HazardEvent @relation(fields: [eventId], references: [id])
+
+  @@index([eventId, createdAt])
+}

@@ -36,6 +36,11 @@ migrate_working_dir/
 # Secrets (never commit)
 .env
 
+# Node / web apps
+**/node_modules/
+**/dist/
+apps/api/dev.db
+
 # Symbolication related
 app.*.symbols
 
