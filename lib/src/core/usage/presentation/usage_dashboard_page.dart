@@ -4,12 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../here_cpm.dart';
 import '../usage_event_type.dart';
 import '../usage_providers.dart';
+import '../budget/budget_providers.dart';
+import '../budget/lite_mode_provider.dart';
 
 class UsageDashboardPage extends ConsumerWidget {
   const UsageDashboardPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tier = ref.watch(planTierProvider);
+    final lite = ref.watch(shouldUseLiteModeProvider).valueOrNull ?? false;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Usage & Cost (30d)')),
       body: FutureBuilder(
@@ -39,6 +44,8 @@ class UsageDashboardPage extends ConsumerWidget {
               children: [
                 Text('Estimativa HERE (últimos 30 dias): €${estimated.toStringAsFixed(2)}',
                     style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 6),
+                Text('Plano: ${tier.name}  •  Lite mode: ${lite ? 'ON' : 'OFF'}'),
                 const SizedBox(height: 12),
                 Row(
                   children: [

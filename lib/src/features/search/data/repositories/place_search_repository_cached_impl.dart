@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../../../core/cache/cache_store.dart';
 import '../../../../core/rate_limit/rate_limiter.dart';
+import '../../../../core/usage/budget/budget_guard.dart';
 import '../../../../core/usage/usage_event_type.dart';
 import '../../../../core/usage/usage_meter.dart';
 import '../../domain/entities/place_suggestion.dart';
@@ -14,15 +15,18 @@ class PlaceSearchRepositoryCachedImpl implements PlaceSearchRepository {
     required CacheStore cache,
     required RateLimiter limiter,
     required UsageMeter usage,
+    required BudgetGuard budget,
   })  : _remote = remote,
         _cache = cache,
         _limiter = limiter,
-        _usage = usage;
+        _usage = usage,
+        _budget = budget;
 
   final HerePlaceSearchDataSource _remote;
   final CacheStore _cache;
   final RateLimiter _limiter;
   final UsageMeter _usage;
+  final BudgetGuard _budget;
 
   static const _ttl = Duration(days: 7);
 
@@ -38,6 +42,8 @@ class PlaceSearchRepositoryCachedImpl implements PlaceSearchRepository {
       final list = (decoded as List).cast<Map>();
       return list.map((m) => PlaceSuggestion.fromJson(m.cast<String, dynamic>())).toList(growable: false);
     }
+
+    await _budget.assertAllowed(UsageEventType.autosuggest, cost: 1);
 
     // Suggestions are high-volume: keep limiter permissive.
     _limiter.check(cost: 1);

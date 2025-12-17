@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../../../core/cache/cache_store.dart';
 import '../../../../core/rate_limit/rate_limiter.dart';
+import '../../../../core/usage/budget/budget_guard.dart';
 import '../../../../core/usage/usage_event_type.dart';
 import '../../../../core/usage/usage_meter.dart';
 import '../../domain/entities/route_request.dart';
@@ -15,15 +16,18 @@ class RoutingRepositoryCachedImpl implements RoutingRepository {
     required CacheStore cache,
     required RateLimiter limiter,
     required UsageMeter usage,
+    required BudgetGuard budget,
   })  : _remote = remote,
         _cache = cache,
         _limiter = limiter,
-        _usage = usage;
+        _usage = usage,
+        _budget = budget;
 
   final HereRoutingDataSource _remote;
   final CacheStore _cache;
   final RateLimiter _limiter;
   final UsageMeter _usage;
+  final BudgetGuard _budget;
 
   static const _ttl = Duration(hours: 24);
 
@@ -46,12 +50,15 @@ class RoutingRepositoryCachedImpl implements RoutingRepository {
   }
 
   Future<RouteResult> _calculateAndCache(RouteRequest request, {required String key}) async {
+    final usageType =
+        request.vehicle.vehicleGroup.name == 'groupA' ? UsageEventType.truckRouting : UsageEventType.carRouting;
+
+    await _budget.assertAllowed(usageType, cost: 1);
+
     // One "token" per route calc; you can increase cost depending on chosen HERE endpoint.
     _limiter.check(cost: 1);
 
-    await _usage.increment(
-      request.vehicle.vehicleGroup.name == 'groupA' ? UsageEventType.truckRouting : UsageEventType.carRouting,
-    );
+    await _usage.increment(usageType);
 
     final route = await _remote.calculate(request);
     await _cache.put(key, jsonEncode(route.toJson()), ttl: _ttl);
