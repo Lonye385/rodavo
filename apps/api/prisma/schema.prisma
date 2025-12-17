@@ -138,18 +138,25 @@ model HazardEvent {
   countryCode String?
   title       String?
   isActive    Boolean    @default(true)
+  isStatic    Boolean    @default(false)
+  source      String?
+  expiresAt   DateTime?
+  lastSeenAt  DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
   reports     HazardReport[]
 
   @@index([isActive])
+  @@index([type, isActive])
+  @@index([expiresAt])
 }
 
 model HazardReport {
   id        String   @id
   userId    String
   eventId   String
+  kind      String   @default("report")
   createdAt DateTime @default(now())
 
   user      User       @relation(fields: [userId], references: [id])

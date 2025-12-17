@@ -26,9 +26,11 @@ export const hazardsRoutes: FastifyPluginAsync = async (app) => {
     const dLat = q.radiusMeters / 111_000;
     const dLng = q.radiusMeters / (111_000 * Math.cos((q.lat * Math.PI) / 180));
 
+    const now = new Date();
     const events = await prisma.hazardEvent.findMany({
       where: {
         isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
         lat: { gte: q.lat - dLat, lte: q.lat + dLat },
         lng: { gte: q.lng - dLng, lte: q.lng + dLng },
       },
@@ -59,6 +61,16 @@ export const hazardsRoutes: FastifyPluginAsync = async (app) => {
       },
     });
 
+    const now = new Date();
+
+    const ttlHoursByType: Record<string, number> = {
+      mobileRadar: 3,
+      police: 3,
+      accident: 4,
+      works: 12,
+      danger: 12,
+    };
+
     if (!event) {
       event = await prisma.hazardEvent.create({
         data: {
@@ -68,6 +80,19 @@ export const hazardsRoutes: FastifyPluginAsync = async (app) => {
           lng: body.lng,
           countryCode: body.countryCode,
           title: body.title,
+          isStatic: body.type === 'fixedRadar',
+          source: 'community',
+          expiresAt: body.type === 'fixedRadar' ? null : new Date(now.getTime() + (ttlHoursByType[body.type] ?? 6) * 3600_000),
+          lastSeenAt: now,
+        },
+      });
+    } else {
+      // refresh TTL for dynamic events
+      await prisma.hazardEvent.update({
+        where: { id: event.id },
+        data: {
+          lastSeenAt: now,
+          expiresAt: event.type === 'fixedRadar' ? null : new Date(now.getTime() + (ttlHoursByType[event.type] ?? 6) * 3600_000),
         },
       });
     }
