@@ -6,6 +6,7 @@ import '../usage_event_type.dart';
 import '../usage_providers.dart';
 import '../budget/budget_providers.dart';
 import '../budget/lite_mode_provider.dart';
+import '../../maps/map_policy_provider.dart';
 
 class UsageDashboardPage extends ConsumerWidget {
   const UsageDashboardPage({super.key});
@@ -14,6 +15,7 @@ class UsageDashboardPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tier = ref.watch(planTierProvider);
     final lite = ref.watch(shouldUseLiteModeProvider).valueOrNull ?? false;
+    final policy = ref.watch(mapPolicyProvider).valueOrNull;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Usage & Cost (30d)')),
@@ -46,6 +48,12 @@ class UsageDashboardPage extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 6),
                 Text('Plano: ${tier.name}  •  Lite mode: ${lite ? 'ON' : 'OFF'}'),
+                if (policy != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Map: traffic=${policy.trafficEnabled ? 'on' : 'off'} • pan/zoom=${policy.allowPanZoom ? 'on' : 'off'} • camera=${policy.cameraUpdateInterval.inMilliseconds}ms',
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Row(
                   children: [
